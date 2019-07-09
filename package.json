@@ -13,7 +13,7 @@
     "eslint-config-twa-camp-2016": ">=0.2.1",
     "eslint-plugin-extra-rules": "^0.6.1",
     "eslint-plugin-node": "^2.0.0",
-    "eslint-plugin-spellcheck": "0.0.7",
+    "eslint-plugin-spellcheck": "0.0.11",
     "eslint-plugin-xo": "^0.5.1"
   }
 }
