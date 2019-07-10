@@ -30,7 +30,7 @@ function printOut(message) {
   console.log(message);
 }
 
-function formatToReceipt({total, save, items}) {
+function formatToReceipt({ total, save, items }) {
   const formatSingleItem = ({ name, count, unit, price, total }) =>
     `名称：${name}，数量：${count}${unit}，单价：${price.toFixed(2)}(元)，` +
     `小计：${total.toFixed(2)}(元)\n`;
@@ -47,25 +47,32 @@ function formatToReceipt({total, save, items}) {
 
 function calculateItems(originalItems, promotions) {
   let hash = {};
-  let savedPrice = 0;
-  let totalPrice = 0;
 
   originalItems.forEach(({ barcode, price, count, ...otherProps }) => {
-    const nextCount = hash[barcode] ? hash[barcode].count + count : count;
-    const {total, save} = calculatePriceWithPromotion({ price, count: nextCount, barcode }, promotions);
-    savedPrice += save;
-    totalPrice += total;
-
+    const countAsFloat = Number.parseFloat(count);
+    const nextCount = hash[barcode] ? hash[barcode].count + countAsFloat : countAsFloat;
+    const { total, save } = calculatePriceWithPromotion({ price, count: nextCount, barcode }, promotions);
     hash[barcode] = {
       barcode,
-      price: price,
+      price,
+      total,
+      save,
       count: nextCount,
-      total: total,
       ...otherProps,
     }
   });
 
-  return {items: Object.values(hash), save: savedPrice, total: totalPrice};
+  const parsedItems = Object.values(hash);
+  const { totalPriceSum, savedPriceSum } = calculateTotalPriceAndSavedPrice(parsedItems);
+
+  return { items: parsedItems, save: savedPriceSum, total: totalPriceSum };
+}
+
+function calculateTotalPriceAndSavedPrice(items) {
+  return items.reduce(({ totalPriceSum, savedPriceSum }, { save, total }) => ({
+    totalPriceSum: totalPriceSum + total,
+    savedPriceSum: savedPriceSum + save
+  }), { totalPriceSum: 0, savedPriceSum: 0 })
 }
 
 function getPromotionSolution(promotionType) {
@@ -87,7 +94,10 @@ function calculatePriceWithPromotion({ price, count, barcode }, promotions) {
   const promotionSolution = getPromotionSolution(PROMOTION_TYPE_BUY_TWO_GET_ONE_FREE);
   const shouldPromote = barcode => targetPromotion.barcodes.includes(barcode);
 
-  return shouldPromote(barcode) ? promotionSolution(price, count) : price * count;
+  const totalPrice = price * count;
+  const promotedPrice = shouldPromote(barcode) ? promotionSolution(price, count) : totalPrice;
+
+  return { total: promotedPrice, save: totalPrice - promotedPrice };
 }
 
 function findItemByBarcode(barcode, storage) {
